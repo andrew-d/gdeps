@@ -127,8 +127,9 @@ func processLine(line string, linenum int) {
     // Get the package.
     fmt.Printf(">> getting package %s\n", args[0])
     cmd := exec.Command("go", "get", "-u", "-d", args[0])
-    if err := cmd.Run(); err != nil {
-        Warnf(">> error getting: %s\n", args[0])
+    if out, err := cmd.CombinedOutput(); err != nil {
+        Warnf(">> error getting %s: %s\n", args[0],
+            formatOutput(append([]byte{'\n'}, out...)))
         return
     }
 
@@ -164,8 +165,8 @@ func processLine(line string, linenum int) {
             args := strings.Fields(fmt.Sprintf(x.CheckoutCommand, args[1]))
             cmd = exec.Command(x.Tool, args...)
             if out, err := cmd.CombinedOutput(); err != nil {
-                Warnf(">> error setting version: %s\n", err)
-                Warnf(">> output: %s\n", formatOutput(out))
+                Warnf(">> error setting version: %s\n",
+                    formatOutput(append([]byte{'\n'}, out...)))
                 return
             }
             return
@@ -190,5 +191,10 @@ func dirExists(dirname string) (bool, error) {
 }
 
 func formatOutput(in []byte) []byte {
-    return bytes.Join(bytes.Split(in, []byte{'\n'}), []byte("\n     "))
+    return bytes.TrimRight(
+        bytes.Join(
+            bytes.Split(in, []byte{'\n'}),
+            []byte("\n     "),
+        ),
+        "\r\n\t ")
 }
